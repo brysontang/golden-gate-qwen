@@ -1,0 +1,48 @@
+# SAE Training Configuration
+# Target: Qwen2.5-1.5B on RTX 3070 Ti (8GB VRAM)
+
+experiment:
+  name: sae-qwen-layer16-16x-topk64
+  seed: 42
+  description: "16x expansion TopK SAE on Qwen2.5-1.5B layer 16 (24576 features, k=64)"
+
+model:
+  name: Qwen/Qwen2.5-1.5B
+  layer: 16                    # Middle-ish layer, good for features
+  hook_point: resid_post       # Post-residual (after attention + MLP)
+  max_seq_len: 128             # Truncate sequences to save VRAM
+  fp16: true                   # Use float16 for model (SAE trains in fp32)
+
+data:
+  name: stas/openwebtext-10k
+  revision: refs/convert/parquet  # Use parquet branch (no remote code execution)
+  split: train
+  text_column: text
+  num_samples: 5000            # Start with 5k docs, scale up if VRAM allows
+
+sae:
+  expansion_factor: 16         # d_sae = 16 * d_model = 24576 features
+  k: 64                        # TopK: keep exactly 64 features active per token
+  l1_coefficient: 0.0          # Ignored when using TopK
+  tied_weights: false          # Separate encoder/decoder weights
+
+training:
+  epochs: 5
+  batch_size: 2048             # SAE training batch (activations, not docs)
+  activation_batch_size: 2     # Docs to process at once through model
+  docs_per_step: 50            # Docs to accumulate before SAE training
+  lr: 1e-4
+  normalize: true              # Per-dimension activation normalization
+  norm_samples: 500            # Samples to compute normalization stats
+  normalize_decoder_freq: 100  # Normalize decoder every N steps
+  log_freq: 10                 # Log to wandb every N steps
+  checkpoint_dir: ./checkpoints
+
+wandb:
+  project: porygon-sae
+  tags:
+    - sae
+    - qwen2.5-1.5b
+    - layer16
+    - 16x-expansion
+    - interpretability

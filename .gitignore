@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+.python-version
+
+# Training artifacts
+checkpoints/
+*.pt
+*.log
+
+# Experiment tracking
+wandb/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
